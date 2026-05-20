@@ -1,4 +1,3 @@
-<script>
 // ==========================================
 //  scripts.js — Stock Manager v3
 //  Frontend Logic — GitHub Pages Version
@@ -894,4 +893,3 @@ window.addEventListener('DOMContentLoaded', function() {
   loadAllData();
   initPullToRefresh();
 });
-</script>
