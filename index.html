@@ -22,7 +22,7 @@
   <!-- ZXing Barcode Scanner -->
   <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 
-  <link rel="stylesheet" href="styles.css?v=1.0.3" />
+  <link rel="stylesheet" href="styles.css?v=1.0.4" />
 </head>
 
 <body>
@@ -40,7 +40,7 @@
         </svg>
       </div>
       <div class="relative flex-1 min-w-0">
-        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+        <div class="absolute inset-y-0 left-2.5 flex items-center pointer-events-none text-slate-400">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -56,21 +56,23 @@
           </svg>
         </button>
       </div>
-      <!-- ปุ่มสแกนบาร์โค้ด (ใหม่) -->
-      <button onclick="openScannerModal()" aria-label="สแกนบาร์โค้ด"
-        class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 active:scale-90 transition-transform flex items-center justify-center flex-shrink-0">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-            d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4m10-16h4a2 2 0 012 2v4m0 6v4a2 2 0 01-2 2h-4M7 12h.01M12 12h.01M17 12h.01" />
-        </svg>
-      </button>
-      <button onclick="loadAllData()" aria-label="รีเฟรช"
-        class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 active:scale-90 transition-transform flex items-center justify-center flex-shrink-0">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-      </button>
+      <!-- กลุ่มปุ่มขวา -->
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <button onclick="openScannerModal()" aria-label="สแกนบาร์โค้ด"
+          class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 active:scale-90 transition-transform flex items-center justify-center">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+              d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4m10-16h4a2 2 0 012 2v4m0 6v4a2 2 0 01-2 2h-4M7 12h.01M12 12h.01M17 12h.01" />
+          </svg>
+        </button>
+        <button onclick="loadAllData()" aria-label="รีเฟรช"
+          class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 active:scale-90 transition-transform flex items-center justify-center">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- ชั้นที่ 2: Tabs -->
@@ -131,7 +133,7 @@
       <div class="mb-3 flex items-center justify-between">
         <span id="stats-text"
           class="text-[10px] font-black text-slate-400 tracking-widest uppercase">กำลังโหลดข้อมูล...</span>
-        <span class="text-[8px] font-bold text-slate-300 uppercase">Version 1.0.3-Hybrid</span>
+        <span class="text-[8px] font-bold text-slate-300 uppercase">Version 1.0.4-Hybrid</span>
       </div>
       <div id="product-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-slate-900"></div>
       <div id="empty-state" class="hidden flex-col items-center justify-center py-20 text-center">
@@ -147,8 +149,8 @@
   </main>
 
   <!-- ไฟล์ Modal และ Script -->
-  <script src="modals.js?v=1.0.3"></script>
-  <script src="scripts.js?v=1.0.3"></script>
+  <script src="modals.js?v=1.0.4"></script>
+  <script src="scripts.js?v=1.0.4"></script>
 
 </body>
 
