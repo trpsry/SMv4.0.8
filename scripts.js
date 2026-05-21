@@ -963,40 +963,37 @@ function startScanner() {
             if (result) {
               var raw = result.getText();
 
-              // ── สกัด SKU จาก raw string ────────────────────────────────────
-// กรณี Code128 ที่มี "/" เช่น "074859935/8858705607398/51"
-// ให้หาส่วนที่เป็น EAN-13 (13 หลัก) หรือ EAN-8 ก่อน
+// ── สกัด SKU: เลือก EAN-13 (13 หลัก) จาก Code128 รูปแบบ xxx/EAN13/xx
 var sku = '';
+var parts = raw.split('/');
 
-// 1. ถ้า raw มี "/" ให้ split แล้วหาส่วนที่เป็น EAN-13
-if (raw.indexOf('/') !== -1) {
-  var parts = raw.split('/');
+// รอบที่ 1: หาส่วนที่เป็น 13 หลักก่อน (EAN-13 มาตรฐาน)
+for (var pi = 0; pi < parts.length; pi++) {
+  var part = parts[pi].replace(/\D/g, '');
+  if (part.length === 13) { sku = part; break; }
+}
+
+// รอบที่ 2: ถ้าไม่มี 13 หลัก ลองหา 8 หลัก (EAN-8)
+if (!sku) {
   for (var pi = 0; pi < parts.length; pi++) {
     var part = parts[pi].replace(/\D/g, '');
-    if (part.length >= 8 && part.length <= 14) {
-      sku = part;
-      break;
-    }
+    if (part.length === 8) { sku = part; break; }
   }
 }
 
-// 2. ถ้าไม่มี "/" ให้ใช้ raw ตรงๆ (ลบอักขระพิเศษออก)
-if (!sku) {
+// รอบที่ 3: ถ้าไม่มี "/" เลย ใช้ raw ทั้งหมด
+if (!sku && parts.length === 1) {
   sku = raw.replace(/\D/g, '');
+  // ถ้ายาวเกิน 13 ให้หา EAN-13 prefix สินค้าไทย
+  if (sku.length > 13) {
+    var m = sku.match(/(?:885|074|888|087|693)\d{10}/);
+    sku = m ? m[0] : '';
+  }
 }
 
-// 3. ถ้ายังไม่ได้ก็ข้ามไป
+// ต้องได้อย่างน้อย 8 หลัก
 if (!sku || sku.length < 8) return;
 
-// 4. ถ้ายาวเกิน 14 ให้ลองหา EAN-13 ที่ขึ้นต้นด้วย 885 หรือ 074 (Thai products)
-if (sku.length > 14) {
-  var match = sku.match(/(?:885|074|888|087|693)\d{10}/);
-  if (match) {
-    sku = match[0];
-  } else {
-    return; // หาไม่ได้จริงๆ ให้ข้าม
-  }
-}
 
               _lastScannedSku = sku;
               if (_codeReader) _codeReader.reset();
