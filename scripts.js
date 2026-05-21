@@ -909,42 +909,90 @@ function startScanner() {
     .then(function() {
       if (sessionId !== _scannerSessionId) return;
       if (document.getElementById('scanner-modal').classList.contains('hidden')) return;
-
       if (statusEl) statusEl.textContent = 'กำลังเปิดกล้อง...';
-      if (_codeReader) {
-        try { _codeReader.reset(); } catch (err) {}
-      }
-      _codeReader = new ZXing.BrowserMultiFormatReader();
+      if (_codeReader) { try { _codeReader.reset(); } catch (err) {} }
 
-      _codeReader.decodeFromVideoDevice(null, 'scanner-video', function(result, err) {
-        if (sessionId !== _scannerSessionId) return;
-
-        if (result) {
-          var sku = result.getText();
-          _lastScannedSku = sku;
-
-          if (_codeReader) _codeReader.reset();
-          if (statusEl)  statusEl.textContent = '';
-          if (resultBox) resultBox.classList.remove('hidden');
-
-          document.getElementById('scanner-result-text').textContent = sku;
-
-          var productName = findProductBySku(sku);
-          var nameEl = document.getElementById('scanner-product-name');
-          if (nameEl) nameEl.textContent = productName ? productName : 'ไม่พบสินค้าในระบบ';
-
-          if (actionsEl)  actionsEl.classList.remove('hidden');
-          if (closeBtnEl) closeBtnEl.classList.add('hidden');
-        } else if (err && !(err instanceof ZXing.NotFoundException)) {
-          if (statusEl) statusEl.textContent = 'ไม่สามารถเปิดกล้องได้: ' + err.message;
-        } else if (statusEl && statusEl.textContent === 'กำลังเปิดกล้อง...') {
-          statusEl.textContent = 'จ่อกล้องไปที่บาร์โค้ด...';
+      // ── ขอกล้องพร้อมตั้งค่า focusMode + zoom ──────────────────
+      var videoEl = document.getElementById('scanner-video');
+      var constraints = {
+        video: {
+          facingMode: 'environment',
+          width:  { ideal: 1280 },
+          height: { ideal: 720  },
+          focusMode: 'continuous',        // โฟกัสอัตโนมัติ
+          advanced: [{ focusMode: 'continuous' }]
         }
-      });
+      };
+
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then(function(stream) {
+          if (sessionId !== _scannerSessionId) { stream.getTracks().forEach(function(t){t.stop();}); return; }
+          _scannerStream = stream;
+          videoEl.srcObject = stream;
+
+          // ── ลอง enable continuous autofocus ผ่าน ImageCapture API ──
+          var track = stream.getVideoTracks()[0];
+          if (track && track.applyConstraints) {
+            track.applyConstraints({
+              advanced: [{ focusMode: 'continuous' }]
+            }).catch(function(){});
+          }
+
+          if (statusEl) statusEl.textContent = 'จ่อกล้องไปที่บาร์โค้ด...';
+
+          _codeReader = new ZXing.BrowserMultiFormatReader();
+
+          // ── hints: อ่านเฉพาะ format ที่สินค้าใช้จริง ──────────────
+          var hints = new Map();
+          var formats = [
+            ZXing.BarcodeFormat.EAN_13,
+            ZXing.BarcodeFormat.EAN_8,
+            ZXing.BarcodeFormat.CODE_128,
+            ZXing.BarcodeFormat.CODE_39,
+            ZXing.BarcodeFormat.UPC_A,
+            ZXing.BarcodeFormat.UPC_E
+          ];
+          hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+          hints.set(ZXing.DecodeHintType.TRY_HARDER, false);
+
+          _codeReader = new ZXing.BrowserMultiFormatReader(hints);
+
+          _codeReader.decodeFromStream(stream, videoEl, function(result, err) {
+            if (sessionId !== _scannerSessionId) return;
+
+            if (result) {
+              var raw = result.getText();
+
+              // ── กรอง: เอาเฉพาะตัวเลข 8-14 ตัว (EAN/UPC/Code128 สินค้า) ──
+              var sku = raw.replace(/\D/g, '');
+              if (sku.length < 8 || sku.length > 14) return; // อ่านได้แต่ไม่ใช่บาร์โค้ดสินค้า
+
+              _lastScannedSku = sku;
+              if (_codeReader) _codeReader.reset();
+              if (statusEl)  statusEl.textContent = '';
+              if (resultBox) resultBox.classList.remove('hidden');
+
+              document.getElementById('scanner-result-text').textContent = sku;
+              var productName = findProductBySku(sku);
+              var nameEl = document.getElementById('scanner-product-name');
+              if (nameEl) nameEl.textContent = productName || 'ไม่พบสินค้าในระบบ';
+
+              if (actionsEl)  actionsEl.classList.remove('hidden');
+              if (closeBtnEl) closeBtnEl.classList.add('hidden');
+
+            } else if (err && !(err instanceof ZXing.NotFoundException)) {
+              if (statusEl) statusEl.textContent = 'เปิดกล้องไม่ได้: ' + err.message;
+            }
+          });
+        })
+        .catch(function(err) {
+          if (sessionId !== _scannerSessionId) return;
+          if (statusEl) statusEl.textContent = 'ไม่ได้รับอนุญาตใช้กล้อง: ' + err.message;
+        });
     })
     .catch(function(err) {
       if (sessionId !== _scannerSessionId) return;
-      if (statusEl) statusEl.textContent = err.message || 'โหลด Scanner library ไม่สำเร็จ';
+      if (statusEl) statusEl.textContent = err.message || 'โหลด Scanner ไม่สำเร็จ';
     });
 }
 
