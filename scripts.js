@@ -961,39 +961,34 @@ function startScanner() {
             if (sessionId !== _scannerSessionId) return;
 
             if (result) {
-              var raw = result.getText();
-              // แสดง raw ก่อนเลย ชั่วคราว
-document.getElementById('scanner-result-text').textContent = raw;
-document.getElementById('scanner-result-box').classList.remove('hidden');
-// ── สกัด SKU: เลือก EAN-13 (13 หลัก) จาก Code128 รูปแบบ xxx/EAN13/xx
-var sku = '';
-var parts = raw.split('/');
+  var raw = result.getText();
 
-if (parts.length >= 3) {
-  // มี "/" — เอาส่วนกลาง (index 1) อย่างเดียว
-  var mid = parts[1].trim();
-  if (/^\d{13,14}$/.test(mid)) sku = mid;
-} else {
-  // ไม่มี "/" — ใช้ raw ทั้งหมดถ้าเป็นเลขล้วน 13-14 หลัก
-  var raw2 = raw.trim();
-  if (/^\d{13,14}$/.test(raw2)) sku = raw2;
-}
+  var sku = '';
+  var parts = raw.split('/');
 
-if (!sku || sku.length < 13) return;
+  if (parts.length >= 3) {
+    var mid = parts[1].trim();
+    if (/^\d{13,14}$/.test(mid)) sku = mid;
+  } else {
+    var raw2 = raw.trim();
+    if (/^\d{13,14}$/.test(raw2)) sku = raw2;
+  }
 
+  if (!sku || sku.length < 13) return;
 
-              _lastScannedSku = sku;
-              if (_codeReader) _codeReader.reset();
-              if (statusEl)  statusEl.textContent = '';
-              if (resultBox) resultBox.classList.remove('hidden');
+  _lastScannedSku = sku;
+  if (_codeReader) _codeReader.reset();
+  if (statusEl) statusEl.textContent = '';
+  if (resultBox) resultBox.classList.remove('hidden');
 
-              document.getElementById('scanner-result-text').textContent = sku;
-              var productName = findProductBySku(sku);
-              var nameEl = document.getElementById('scanner-product-name');
-              if (nameEl) nameEl.textContent = productName || 'ไม่พบสินค้าในระบบ';
+  document.getElementById('scanner-result-text').textContent = sku;
+  var productName = findProductBySku(sku);
+  var nameEl = document.getElementById('scanner-product-name');
+  if (nameEl) nameEl.textContent = productName || 'ไม่พบสินค้าในระบบ';
 
-              if (actionsEl)  actionsEl.classList.remove('hidden');
-              if (closeBtnEl) closeBtnEl.classList.add('hidden');
+  if (actionsEl) actionsEl.classList.remove('hidden');
+  if (closeBtnEl) closeBtnEl.classList.add('hidden');
+
 
             } else if (err && !(err instanceof ZXing.NotFoundException)) {
               if (statusEl) statusEl.textContent = 'เปิดกล้องไม่ได้: ' + err.message;
