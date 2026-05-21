@@ -41,7 +41,12 @@ function getModalsHTML() {
           <div class="flex gap-2">
             <input id="add-sku" type="text" placeholder="รหัสบาร์โค้ด" class="flex-1 px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm outline-none focus:bg-white focus:border-blue-500" />
             <button onclick="openScannerForAddProduct()" class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center active:scale-90 transition-transform border border-blue-100">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4m10-16h4a2 2 0 012 2v4m0 6v4a2 2 0 01-2 2h-4M7 12h.01M12 12h.01M17 12h.01"/></svg>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <g transform="translate(0.25 0.25)">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+      d="M4.75 8V5.75A1.75 1.75 0 0 1 6.5 4h2.25M19.25 8V5.75A1.75 1.75 0 0 0 17.5 4h-2.25M4.75 16v2.25A1.75 1.75 0 0 0 6.5 20h2.25M19.25 16v2.25A1.75 1.75 0 0 1 17.5 20h-2.25M9.5 10.25v3.5M12 9.5v5M14.5 10.25v3.5" />
+  </g>
+</svg>
             </button>
           </div>
         </div>
