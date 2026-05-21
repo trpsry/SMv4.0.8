@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-- **Version**: 4.0.6-Hybrid
+- **Version**: 4.0.8-Hybrid
 - **Platform**: Hybrid Deploy — GitHub Pages (Frontend) + Google Apps Script (Backend)
 - **Stack**: GAS Backend + Google Sheets DB + Vanilla HTML/CSS/JS Frontend
 - **Deploy**:
@@ -17,6 +17,7 @@
 
 ## 2. Repository & IDs
 
+- **GitHub Repository**: `https://github.com/trpsry/Stock-Manager-v4.0.8.git`
 - **Spreadsheet ID**: `1WId___CZ_OIcoJWaIjt1BG74erZrsOXzU09Js0nVPO8`
 - **GAS Web App URL**: อยู่ใน `scripts.js` ตัวแปร `GAS_URL`
 - **App Icon**: `https://i.postimg.cc/zDFxrHNZ/image.png?v=20260502`
@@ -209,7 +210,8 @@ https://bwipjs-api.metafloor.com/?bcid=code128&text={SKU}&scale=5&height=18&incl
 - **Library**: `@zxing/library@latest` (unpkg CDN)
 - **โหลด**: Lazy load เมื่อใช้งาน + `warmScannerLibrary()` preload ตอน idle
 - **Formats**: EAN_13, EAN_8, CODE_128, CODE_39, UPC_A, UPC_E
-- **Filter**: เฉพาะตัวเลข 8–14 หลัก
+- **Filter**: รับ raw จาก barcode แล้วแยก candidate SKU 8–14 หลัก
+- **SKU Selection**: เทียบกับ SKU ใน `state.allData` ก่อนเสมอ แล้วค่อย fallback ด้วย token `/.../`, EAN-13 checksum, และ pattern ป้ายราคา `8880 + SKU + suffix`
 - **Camera**: `facingMode: environment`, continuous autofocus
 - **Viewfinder**: aspect-ratio 4/3, max-height 260px
 - **Mode**:
@@ -231,7 +233,7 @@ _zxingLoadPromise // Promise (singleton load)
 
 ## 11. Rules สำคัญ
 
-- **Version bump**: ทุกครั้งที่แก้ไขโค้ด ให้ bump patch version +0.0.1 ใน context.md (Section 1), index.html (Version label), styles.css (cache-bust query string)
+- **Version bump**: ทุกครั้งที่แก้ไขโค้ด ให้ bump patch version +0.0.1 และใช้เลขเดียวกันใน context.md (Section 1), index.html (Version label), และ cache-bust query string ใน index.html
 - **LOT sort**: sort เฉพาะตอน Save (`sortLots()`) ไม่ sort ตอน render
 - **OH validation**: ห้ามติดลบ
 - **Dynamic sheets**: ใช้ `getMainSheetNames_()` ไม่ hardcode
@@ -247,7 +249,12 @@ _zxingLoadPromise // Promise (singleton load)
 
 |Version          |รายการ                                                    |
 |-----------------|----------------------------------------------------------|
-|v4 (4.0.6-Hybrid)|ปัจจุบัน — เวอร์ชั่นหลัก                                         |
+|v4 (4.0.8-Hybrid)|ปัจจุบัน — push target: `Stock-Manager-v4.0.8.git`|
+|                 |Scanner เลือก SKU จากฐานข้อมูลก่อน fallback เพื่อลดการอ่านป้ายราคาผิด|
+|                 |รองรับ raw ป้ายราคาแบบ `8880 + SKU + suffix`, token `/.../`, EAN-13 checksum และ SKU 14 หลักที่ไม่ขึ้นต้น `885`|
+|                 |ปรับเลขเวอร์ชันใน index/cache-bust ให้ตรงกับ context เป็น `4.0.8-Hybrid`|
+|v4 (4.0.7-Hybrid)|ปรับ Scanner ให้เลือก SKU จากฐานข้อมูลก่อน และรองรับป้ายราคาที่มี prefix/suffix|
+|v4 (4.0.6-Hybrid)|เวอร์ชั่นหลักก่อนหน้า                                         |
 |                 |แก้ไอคอนปุ่มสแกนใน Add Product Modal ให้ตรงกับหน้าหลัก           |
 |                 |เพิ่ม Scanner modal (ZXing) — ค้นหาหน้าหลัก + กรอก SKU ใน modal|
 |                 |Hybrid deploy: GitHub Pages + GAS backend                 |

@@ -961,49 +961,23 @@ function startScanner() {
             if (sessionId !== _scannerSessionId) return;
 
             if (result) {
-  var raw = result.getText();
-  // DEBUG: แสดง raw ใน toast ชั่วคราว
-  showToast('RAW: ' + raw, false);
+              var raw = result.getText();
+              var sku = extractScannerSku(raw);
 
-  var sku = '';
-  var parts = raw.split('/');
+              if (!sku) return;
 
-  if (parts.length >= 3) {
-    var mid = parts[1].trim();
-    if (/^\d{13,14}$/.test(mid)) sku = mid;
+              _lastScannedSku = sku;
+              if (_codeReader) _codeReader.reset();
+              if (statusEl) statusEl.textContent = '';
+              if (resultBox) resultBox.classList.remove('hidden');
 
-  } else {
-  var digits = raw.replace(/\D/g, '');
-  var allValid = [];
-  // หา 13 หลัก
-  for (var ci = 0; ci <= digits.length - 13; ci++) {
-    var candidate = digits.substr(ci, 13);
-    if (isValidEAN13(candidate)) allValid.push(candidate);
-  }
-  // หา 14 หลัก (ตรงๆ)
-  if (digits.length === 14) allValid.push(digits);
+              document.getElementById('scanner-result-text').textContent = sku;
+              var productName = findProductBySku(sku);
+              var nameEl = document.getElementById('scanner-product-name');
+              if (nameEl) nameEl.textContent = productName || 'ไม่พบสินค้าในระบบ';
 
-  for (var vi = 0; vi < allValid.length; vi++) {
-    if (allValid[vi].indexOf('885') === 0) { sku = allValid[vi]; break; }
-  }
-  if (!sku && allValid.length > 0) sku = allValid[0];
-  if (!sku && /^\d{13,14}$/.test(raw.trim())) sku = raw.trim();
-}
-
-  if (!sku || sku.length < 13) return;
-
-  _lastScannedSku = sku;
-  if (_codeReader) _codeReader.reset();
-  if (statusEl) statusEl.textContent = '';
-  if (resultBox) resultBox.classList.remove('hidden');
-
-  document.getElementById('scanner-result-text').textContent = sku;
-  var productName = findProductBySku(sku);
-  var nameEl = document.getElementById('scanner-product-name');
-  if (nameEl) nameEl.textContent = productName || 'ไม่พบสินค้าในระบบ';
-
-  if (actionsEl) actionsEl.classList.remove('hidden');
-  if (closeBtnEl) closeBtnEl.classList.add('hidden');
+              if (actionsEl) actionsEl.classList.remove('hidden');
+              if (closeBtnEl) closeBtnEl.classList.add('hidden');
 
 
             } else if (err && !(err instanceof ZXing.NotFoundException)) {
@@ -1021,6 +995,157 @@ function startScanner() {
       if (statusEl) statusEl.textContent = err.message || 'โหลด Scanner ไม่สำเร็จ';
     });
 }
+
+function normalizeScannerDigits(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function addScannerCandidate(candidates, byDigits, value, score, source, index) {
+  var digits = normalizeScannerDigits(value);
+  if (!/^\d{8,14}$/.test(digits)) return;
+
+  var existing = byDigits[digits];
+  if (existing) {
+    if (score > existing.score) {
+      existing.score = score;
+      existing.source = source;
+      existing.index = typeof index === 'number' ? index : existing.index;
+    }
+    return;
+  }
+
+  var candidate = {
+    sku: digits,
+    digits: digits,
+    score: score,
+    source: source || '',
+    index: typeof index === 'number' ? index : 999
+  };
+  candidates.push(candidate);
+  byDigits[digits] = candidate;
+}
+
+function buildScannerCandidates(rawText) {
+  var text = String(rawText || '').trim();
+  var digits = normalizeScannerDigits(text);
+  var candidates = [];
+  var byDigits = {};
+
+  if (!text && !digits) return candidates;
+
+  if (/^\d{8,14}$/.test(text)) {
+    addScannerCandidate(candidates, byDigits, text, 260 + text.length + (isValidEAN13(text) ? 80 : 0), 'raw', 0);
+  } else if (/^\d{8,14}$/.test(digits)) {
+    addScannerCandidate(candidates, byDigits, digits, 230 + digits.length + (isValidEAN13(digits) ? 80 : 0), 'digits', 0);
+  }
+
+  var slashParts = text.split('/');
+  if (slashParts.length >= 3) {
+    addScannerCandidate(candidates, byDigits, slashParts[1], 360, 'slash-middle', 1);
+  }
+
+  var tokens = text.split(/\D+/);
+  for (var ti = 0; ti < tokens.length; ti++) {
+    if (!tokens[ti]) continue;
+    addScannerCandidate(candidates, byDigits, tokens[ti], 190 + tokens[ti].length, 'token', ti);
+  }
+
+  if (digits.length > 14 && digits.indexOf('8880') === 0) {
+    for (var pl = 14; pl >= 8; pl--) {
+      if (digits.length < 4 + pl) continue;
+      var prefixed = digits.substr(4, pl);
+      var prefixScore = 155 + pl + (digits.length - 4 - pl <= 4 ? 20 : 0);
+      if (pl === 13 && isValidEAN13(prefixed)) prefixScore += 90;
+      if (pl === 14) prefixScore += 65;
+      addScannerCandidate(candidates, byDigits, prefixed, prefixScore, 'price-prefix-8880', 4);
+    }
+  }
+
+  if (digits.length > 13) {
+    for (var ei = 0; ei <= digits.length - 13; ei++) {
+      var ean = digits.substr(ei, 13);
+      if (!isValidEAN13(ean)) continue;
+      var eanScore = 125 + (ean.indexOf('885') === 0 ? 10 : 0);
+      if (digits.indexOf('8880') === 0 && ei === 4) eanScore += 90;
+      addScannerCandidate(candidates, byDigits, ean, eanScore, 'ean13-window', ei);
+    }
+  }
+
+  candidates.sort(function(a, b) {
+    return (b.score - a.score) || (b.digits.length - a.digits.length) || (a.index - b.index);
+  });
+  return candidates;
+}
+
+function getKnownScannerSkus() {
+  var known = [];
+  var seen = {};
+  var names = Object.keys(state.allData || {});
+
+  for (var i = 0; i < names.length; i++) {
+    var rows = state.allData[names[i]] || [];
+    for (var j = 0; j < rows.length; j++) {
+      var sku = String(rows[j].barcode || '').trim();
+      var digits = normalizeScannerDigits(sku);
+      if (!/^\d{8,14}$/.test(digits) || seen[digits]) continue;
+      seen[digits] = true;
+      known.push({ sku: sku || digits, digits: digits, name: rows[j].name || '' });
+    }
+  }
+
+  return known;
+}
+
+function findKnownScannerMatch(rawText, candidates) {
+  var text = String(rawText || '').trim();
+  var rawDigits = normalizeScannerDigits(text);
+  var known = getKnownScannerSkus();
+  var best = null;
+  var candidateScoreByDigits = {};
+  var tokenMap = {};
+  var tokens = text.split(/\D+/);
+
+  for (var ci = 0; ci < candidates.length; ci++) {
+    candidateScoreByDigits[candidates[ci].digits] = candidates[ci].score;
+  }
+  for (var ti = 0; ti < tokens.length; ti++) {
+    if (tokens[ti]) tokenMap[tokens[ti]] = true;
+  }
+
+  for (var i = 0; i < known.length; i++) {
+    var item = known[i];
+    var score = 0;
+    var index = rawDigits.indexOf(item.digits);
+
+    if (text === item.sku || rawDigits === item.digits) {
+      score = 1500 + item.digits.length;
+    } else if (candidateScoreByDigits[item.digits]) {
+      score = 1100 + candidateScoreByDigits[item.digits] + item.digits.length;
+    } else if (tokenMap[item.digits]) {
+      score = 1000 + item.digits.length;
+    } else if (
+      index !== -1 &&
+      (item.digits.length >= 13 || index === 4 || rawDigits.length <= 14)
+    ) {
+      score = 850 + (item.digits.length * 8) + (index === 4 ? 80 : 0);
+    }
+
+    if (!score) continue;
+    if (!best || score > best.score || (score === best.score && item.digits.length > best.digits.length)) {
+      best = { sku: item.sku, digits: item.digits, score: score };
+    }
+  }
+
+  return best;
+}
+
+function extractScannerSku(rawText) {
+  var candidates = buildScannerCandidates(rawText);
+  var knownMatch = findKnownScannerMatch(rawText, candidates);
+  if (knownMatch) return knownMatch.sku;
+  return candidates.length ? candidates[0].sku : '';
+}
+
 function isValidEAN13(s) {
   if (!/^\d{13}$/.test(s)) return false;
   var sum = 0;
@@ -1030,11 +1155,14 @@ function isValidEAN13(s) {
   return (10 - (sum % 10)) % 10 === parseInt(s[12]);
 }
 function findProductBySku(sku) {
+  var target = String(sku || '').trim();
+  var targetDigits = normalizeScannerDigits(target);
   var names = Object.keys(state.allData);
   for (var i = 0; i < names.length; i++) {
     var rows = state.allData[names[i]] || [];
     for (var j = 0; j < rows.length; j++) {
-      if (String(rows[j].barcode || '').trim() === String(sku).trim()) {
+      var barcode = String(rows[j].barcode || '').trim();
+      if (barcode === target || (targetDigits && normalizeScannerDigits(barcode) === targetDigits)) {
         return rows[j].name || '';
       }
     }
@@ -1068,7 +1196,10 @@ function scannerSearchProduct() {
     for (var i = 0; i < names.length && !found; i++) {
       var rows = state.allData[names[i]] || [];
       for (var j = 0; j < rows.length && !found; j++) {
-        if (String(rows[j].barcode || '').trim() === String(sku).trim()) {
+        var barcode = String(rows[j].barcode || '').trim();
+        var barcodeDigits = normalizeScannerDigits(barcode);
+        var skuDigits = normalizeScannerDigits(sku);
+        if (barcode === String(sku).trim() || (skuDigits && barcodeDigits === skuDigits)) {
           var u = uid(rows[j].sheetName || names[i], rows[j].rowIndex);
           var cardEl = document.getElementById('title_' + u);
           if (cardEl) {
