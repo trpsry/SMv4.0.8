@@ -967,32 +967,17 @@ function startScanner() {
 var sku = '';
 var parts = raw.split('/');
 
-// รอบที่ 1: หาส่วนที่เป็น 13 หลักก่อน (EAN-13 มาตรฐาน)
-for (var pi = 0; pi < parts.length; pi++) {
-  var part = parts[pi].replace(/\D/g, '');
-  if (part.length === 13) { sku = part; break; }
+if (parts.length >= 3) {
+  // มี "/" — เอาส่วนกลาง (index 1) อย่างเดียว
+  var mid = parts[1].trim();
+  if (/^\d{13,14}$/.test(mid)) sku = mid;
+} else {
+  // ไม่มี "/" — ใช้ raw ทั้งหมดถ้าเป็นเลขล้วน 13-14 หลัก
+  var raw2 = raw.trim();
+  if (/^\d{13,14}$/.test(raw2)) sku = raw2;
 }
 
-// รอบที่ 2: ถ้าไม่มี 13 หลัก ลองหา 8 หลัก (EAN-8)
-if (!sku) {
-  for (var pi = 0; pi < parts.length; pi++) {
-    var part = parts[pi].replace(/\D/g, '');
-    if (part.length === 8) { sku = part; break; }
-  }
-}
-
-// รอบที่ 3: ถ้าไม่มี "/" เลย ใช้ raw ทั้งหมด
-if (!sku && parts.length === 1) {
-  sku = raw.replace(/\D/g, '');
-  // ถ้ายาวเกิน 13 ให้หา EAN-13 prefix สินค้าไทย
-  if (sku.length > 13) {
-    var m = sku.match(/(?:885|074|888|087|693)\d{10}/);
-    sku = m ? m[0] : '';
-  }
-}
-
-// ต้องได้อย่างน้อย 8 หลัก
-if (!sku || sku.length < 8) return;
+if (!sku || sku.length < 13) return;
 
 
               _lastScannedSku = sku;
