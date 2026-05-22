@@ -450,6 +450,13 @@ function getFiltered() {
 
 // ── Utils ─────────────────────────────────────────────────────────
 function pad2(v) { return String(v).padStart(2, '0'); }
+// ✅ เพิ่มตรงนี้
+function localTimestamp() {
+  var now = new Date();
+  return pad2(now.getDate()) + '/' + pad2(now.getMonth()+1) + '/' +
+         String(now.getFullYear()).slice(2) + ' ' +
+         pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+}
 function ea(v)   { return String(v || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function ja(v)   { if (typeof v === 'boolean') return String(v); return typeof v === 'number' ? String(v) : JSON.stringify(String(v == null ? '' : v)); }
 function jsCall(name, args) { return name + '(' + args.map(ja).join(',') + ')'; }
@@ -615,13 +622,17 @@ function saveLot(sn, ri, u) {
   var r = getRow(sn, ri);
   var prevLots = r ? [r.lot1,r.lot2,r.lot3,r.lot4] : ['','','',''];
   var prevTime = r ? r.lotTime : '';
+    var optimisticTime = localTimestamp(); // ✅ เพิ่มบรรทัดนี้
   btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
 
-  callGAS('saveLotData', { sheet: sn, row: ri, l1: lots[0], l2: lots[1], l3: lots[2], l4: lots[3] })
+  callGAS('saveLotData', ...)
     .then(function(raw) {
-      var res = JSON.parse(raw);
-      btn.disabled = false; btn.textContent = 'บันทึก Lot';
-      if (res.success) { updLots(sn,ri,lots,res.lotTime); patchLotTime(u,res.lotTime); showToast('บันทึก Lot สำเร็จ ✓'); renderList(); }
+      ...
+      if (res.success) {
+        var t = res.lotTime || optimisticTime; // ✅ เปลี่ยนบรรทัดนี้
+        updLots(sn,ri,lots,t); patchLotTime(u,t); showToast('บันทึก Lot สำเร็จ ✓'); renderList();
+      }
+
       else { updLots(sn,ri,prevLots,prevTime); showToast('ผิดพลาด: '+res.error,true); }
     })
     .catch(function(err) { updLots(sn,ri,prevLots,prevTime); btn.disabled=false; btn.textContent='บันทึก Lot'; showToast('ผิดพลาด: '+(err.message||'Unknown'),true); });
@@ -629,17 +640,23 @@ function saveLot(sn, ri, u) {
 
 function saveOh(sn, ri, u) {
   var btn = document.getElementById('ohbtn_' + u);
-  var oh  = document.getElementById('oh_'    + u).value.trim();
+  var oh  = document.getElementById('oh_' + u).value.trim();
   if (oh !== '' && parseFloat(oh) < 0) { showToast('ห้ามติดลบ', true); return; }
   var r = getRow(sn, ri);
   var prevOh = r ? r.oh : '', prevTime = r ? r.ohTime : '';
+  var optimisticTime = localTimestamp(); // ✅ generate ก่อน
   btn.disabled = true; btn.textContent = '...';
+  updOh(sn, ri, oh, optimisticTime);    // ✅ อัปเดต state ทันที
+  patchOh(u, oh, optimisticTime);       // ✅ อัปเดต UI ทันที
 
   callGAS('saveOhData', { sheet: sn, row: ri, oh: oh })
     .then(function(raw) {
       var res = JSON.parse(raw);
       btn.disabled = false; btn.textContent = 'บันทึก';
-      if (res.success) { updOh(sn,ri,oh,res.ohTime); patchOh(u,oh,res.ohTime); showToast('บันทึก OH สำเร็จ ✓'); }
+      if (res.success) {
+        var t = res.ohTime || optimisticTime; // ✅ ใช้ server หรือ optimistic
+        updOh(sn,ri,oh,t); patchOh(u,oh,t); showToast('บันทึก OH สำเร็จ ✓');
+      }
       else { updOh(sn,ri,prevOh,prevTime); patchOh(u,prevOh,prevTime); showToast('ผิดพลาด: '+res.error,true); }
     })
     .catch(function(err) { updOh(sn,ri,prevOh,prevTime); patchOh(u,prevOh,prevTime); btn.disabled=false; btn.textContent='บันทึก'; showToast('ผิดพลาด: '+(err.message||'Unknown'),true); });
