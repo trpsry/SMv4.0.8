@@ -950,7 +950,8 @@ function startScanner() {
             ZXing.BarcodeFormat.CODE_128,
             ZXing.BarcodeFormat.CODE_39,
             ZXing.BarcodeFormat.UPC_A,
-            ZXing.BarcodeFormat.UPC_E
+            ZXing.BarcodeFormat.UPC_E,
+            ZXing.BarcodeFormat.ITF
           ];
           hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
           hints.set(ZXing.DecodeHintType.TRY_HARDER, false);
